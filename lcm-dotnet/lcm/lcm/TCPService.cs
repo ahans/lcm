@@ -20,10 +20,10 @@ namespace LCM.LCM
         /// Constructor of the TCP service object
         /// </summary>
         /// <param name="port">TCP port number</param>
-		public TCPService(int port)
+		public TCPService(System.Net.IPAddress address, int port)
 		{
 			TcpListener tempTCPListener;
-			tempTCPListener = new TcpListener(System.Net.Dns.GetHostAddresses(System.Net.Dns.GetHostName())[0], port);
+			tempTCPListener = new TcpListener(address, port);
 			tempTCPListener.Start();
 			serverSocket = tempTCPListener;
             // serverSocket.setReuseAddress(true);
@@ -125,8 +125,8 @@ namespace LCM.LCM
                 ins = new BinaryReader(sock.GetStream());
                 outs = new BinaryWriter(sock.GetStream());
 
-                outs.Write(TCPProvider.MAGIC_SERVER);
-                outs.Write(TCPProvider.VERSION);
+                outs.Write(Util.BitConverter.GetBytes(TCPProvider.MAGIC_SERVER));
+                outs.Write(Util.BitConverter.GetBytes(TCPProvider.VERSION));
             }
 
             public void Start()
@@ -146,14 +146,14 @@ namespace LCM.LCM
                 {
                     while (true)
                     {
-                        int type = ins.ReadInt32();
+                        int type = Util.BitConverter.ToInt32(ins.ReadBytes(4), 0);
                         if (type == TCPProvider.MESSAGE_TYPE_PUBLISH)
                         {
-                            int channellen = ins.ReadInt32();
+                            int channellen = Util.BitConverter.ToInt32(ins.ReadBytes(4), 0);
                             byte[] channel = new byte[channellen];
                             ReadInput(ins.BaseStream, channel, 0, channel.Length);
 
-                            int datalen = ins.ReadInt32();
+                            int datalen = Util.BitConverter.ToInt32(ins.ReadBytes(4), 0);
                             byte[] data = new byte[datalen];
                             ReadInput(ins.BaseStream, data, 0, data.Length);
 
@@ -163,7 +163,7 @@ namespace LCM.LCM
                         }
                         else if (type == TCPProvider.MESSAGE_TYPE_SUBSCRIBE)
                         {
-                            int channellen = ins.ReadInt32();
+                            int channellen = Util.BitConverter.ToInt32(ins.ReadBytes(4), 0);
                             byte[] channel = new byte[channellen];
                             ReadInput(ins.BaseStream, channel, 0, channel.Length);
 
@@ -175,7 +175,7 @@ namespace LCM.LCM
                         }
                         else if (type == TCPProvider.MESSAGE_TYPE_UNSUBSCRIBE)
                         {
-                            int channellen = ins.ReadInt32();
+                            int channellen = Util.BitConverter.ToInt32(ins.ReadBytes(4), 0);
                             byte[] channel = new byte[channellen];
                             ReadInput(ins.BaseStream, channel, 0, channel.Length);
 
@@ -223,10 +223,10 @@ namespace LCM.LCM
                         {
                             if (sr.pat.IsMatch(chanstr))
                             {
-                                outs.Write(TCPProvider.MESSAGE_TYPE_PUBLISH);
-                                outs.Write(channel.Length);
+                                outs.Write(Util.BitConverter.GetBytes(TCPProvider.MESSAGE_TYPE_PUBLISH));
+                                outs.Write(Util.BitConverter.GetBytes(channel.Length));
                                 outs.Write(channel);
-                                outs.Write(data.Length);
+                                outs.Write(Util.BitConverter.GetBytes(data.Length));
                                 outs.Write(data);
                                 outs.Flush();
 
